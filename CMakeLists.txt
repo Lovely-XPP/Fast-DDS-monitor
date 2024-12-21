@@ -89,9 +89,11 @@ if(APPLE)
 endif(APPLE)
 
 find_package(Qt5 5.15 COMPONENTS Core Widgets Gui Qml Quick Charts QuickControls2 REQUIRED)
+
+add_subdirectory(thirdparty/Fast-DDS-statistics-backend)
 # find_package(fastcdr REQUIRED)
 # find_package(fastdds REQUIRED)
-# ind_package(fastdds_statistics_backend REQUIRED)
+# find_package(fastdds_statistics_backend REQUIRED)
 
 
 foreach(c Core Widgets Gui Quick Qml Charts QuickControls2 Utils)

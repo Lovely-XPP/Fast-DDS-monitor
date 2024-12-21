@@ -1,0 +1,3 @@
+[submodule "thirdparty/Fast-DDS-statistics-backend"]
+	path = thirdparty/Fast-DDS-statistics-backend
+	url = https://github.com/Lovely-XPP/Fast-DDS-statistics-backend

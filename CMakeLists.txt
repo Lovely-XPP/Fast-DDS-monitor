@@ -84,10 +84,15 @@ execute_process(
 set(QT_PATH "" CACHE STRING "Path to the Qt installation folder")
 list(APPEND CMAKE_PREFIX_PATH ${QT_PATH})
 
+if(APPLE)
+    set(Qt5_DIR /opt/homebrew/Cellar/qt@5/5.15.13_1/lib/cmake/Qt5)
+endif(APPLE)
+
 find_package(Qt5 5.15 COMPONENTS Core Widgets Gui Qml Quick Charts QuickControls2 REQUIRED)
-find_package(fastcdr REQUIRED)
-find_package(fastdds REQUIRED)
-find_package(fastdds_statistics_backend REQUIRED)
+# find_package(fastcdr REQUIRED)
+# find_package(fastdds REQUIRED)
+# ind_package(fastdds_statistics_backend REQUIRED)
+
 
 foreach(c Core Widgets Gui Quick Qml Charts QuickControls2 Utils)
     if(${Qt5${c}_FOUND})

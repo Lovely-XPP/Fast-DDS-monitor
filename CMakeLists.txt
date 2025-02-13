@@ -85,7 +85,15 @@ set(QT_PATH "" CACHE STRING "Path to the Qt installation folder")
 list(APPEND CMAKE_PREFIX_PATH ${QT_PATH})
 
 if(APPLE)
-    set(Qt5_DIR /opt/homebrew/Cellar/qt@5/5.15.13_1/lib/cmake/Qt5)
+    # find package in system path
+    find_package(Qt5 5.15 COMPONENTS Core)
+    # if not found need manual setting
+    if(Qt5_Found)
+    else()
+        set(Qt5_DIR /opt/homebrew/Cellar/qt@5/5.15.16/lib/cmake/Qt5)
+    endif(Qt5_Found)
+    # package to .app
+    set(GENERATE_MACOS_APP TRUE)
 endif(APPLE)
 
 find_package(Qt5 5.15 COMPONENTS Core Widgets Gui Qml Quick Charts QuickControls2 REQUIRED)
@@ -297,7 +305,40 @@ ${PROJECT_BINARY_DIR}/include/${PROJECT_NAME}/config.h)
 if(MSVC OR MSVC_IDE)
     add_executable(${PROJECT_NAME} WIN32 ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${QT_RESOURCES} ${APP_ICON_RESOURCE_WINDOWS})
 else()
-    add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${QT_RESOURCES})
+    if(GENERATE_MACOS_APP AND APPLE)
+        add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${QT_RESOURCES})
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            BUNDLE True
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/info.plist
+        )
+        # copy icns
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E make_directory
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources/images/eprosima_logo.icns 
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
+        )
+        # run macdeployqt
+        get_target_property(qmake_exec_filepath Qt5::qmake IMPORTED_LOCATION)
+        get_filename_component(qt_exec_bin_dir "${qmake_exec_filepath}" DIRECTORY)
+        get_filename_component(qt_dir "${qt_exec_bin_dir}" DIRECTORY)
+        set(qt_lib_dir "${qt_dir}/lib")
+        find_program(macdeployqt_exec_filepath macdeployqt HINTS "${qt_exec_bin_dir}")
+        message(STATUS "macdeployqt Found: ${macdeployqt_exec_filepath}")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E
+            env PATH="$ENV{PATH}:${qt_exec_bin_dir}:${qt_lib_dir}:${qt_dir}"
+            "${macdeployqt_exec_filepath}"
+            "${PROJECT_NAME}.app"
+            "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/qml"
+            "-dmg"
+            "-verbose=1"
+            COMMENT "Running macdeployqt..."
+        )
+    else()
+        add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${QT_RESOURCES})
+    endif(GENERATE_MACOS_APP)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -398,5 +439,11 @@ install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
 set(CPACK_COMPONENT_LICENSES_HIDDEN 1)
 
 #Install executable
-install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+if(GENERATE_MACOS_APP)
+    install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+    BUNDLE DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
+else()
+    install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION ${BIN_INSTALL_DIR})
+endif(GENERATE_MACOS_APP)

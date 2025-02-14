@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.py": "python",
+        "*.world": "xml",
+        "*.sdf": "xml",
+        "set": "cpp"
+    }
+}

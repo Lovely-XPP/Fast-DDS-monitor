@@ -86,7 +86,7 @@ list(APPEND CMAKE_PREFIX_PATH ${QT_PATH})
 
 if(APPLE)
     # find package in system path
-    find_package(Qt5 5.15 COMPONENTS Core)
+    find_package(Qt5 5.15 COMPONENTS Core QUIET)
     # if not found need manual setting
     if(Qt5_Found)
     else()
@@ -311,12 +311,22 @@ else()
             BUNDLE True
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/info.plist
         )
-        # copy icns
+        # copy icns and resource files
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND "${CMAKE_COMMAND}" -E make_directory
             $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
             COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             ${CMAKE_CURRENT_SOURCE_DIR}/resources/images/eprosima_logo.icns 
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/resources
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/qtquickcontrols2.conf
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
+            ${CMAKE_CURRENT_SOURCE_DIR}/controls
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
+            ${CMAKE_CURRENT_SOURCE_DIR}/imports
             $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/
         )
         # run macdeployqt
@@ -332,13 +342,22 @@ else()
             "${macdeployqt_exec_filepath}"
             "${PROJECT_NAME}.app"
             "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/qml"
+            "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/controls"
+            "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/imports"
             "-dmg"
             "-verbose=1"
+            "-always-overwrite"
             COMMENT "Running macdeployqt..."
+        )
+        # add Data Path
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E echo "Data = Resources" >> $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/qt.conf
+            DEPENDS $<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/qt.conf
+            COMMENT "Adding a Data Path to qt.conf"
         )
     else()
         add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS} ${QT_RESOURCES})
-    endif(GENERATE_MACOS_APP)
+    endif()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE

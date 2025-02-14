@@ -345,7 +345,8 @@ else()
             "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/controls"
             "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/imports"
             "-dmg"
-            "-verbose=1"
+            "-codesign=2041681259E834C9569968F2D6F12ECBEC818235"
+            "-verbose=2"
             "-always-overwrite"
             COMMENT "Running macdeployqt..."
         )

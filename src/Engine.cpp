@@ -25,6 +25,11 @@
 #include <QQmlApplicationEngine>
 #include <QtCore/QRandomGenerator>
 #include <qqmlcontext.h>
+#include <QFile>
+#include <QDir>
+#include <QIODevice>
+#include <QStringListModel>
+#include <QStandardItem>
 
 #include <fastdds_monitor/backend/backend_types.h>
 #include <fastdds_monitor/backend/Listener.h>
@@ -49,6 +54,7 @@ Engine::Engine()
     : enabled_(false)
     , inactive_visible_(true)
     , metatraffic_visible_(false)
+    , ros2_demangling_active_(true)
 {
 }
 
@@ -105,6 +111,9 @@ QObject* Engine::enable()
 
     historic_statistics_data_ = new HistoricStatisticsData();
     dynamic_statistics_data_ = new DynamicStatisticsData();
+
+    participant_xml_profiles_ = new QStringListModel();
+
     controller_ = new Controller(this);
 
     // Set the initial time
@@ -127,6 +136,9 @@ QObject* Engine::enable()
 
     rootContext()->setContextProperty("historicData", historic_statistics_data_);
     rootContext()->setContextProperty("dynamicData", dynamic_statistics_data_);
+
+    rootContext()->setContextProperty("ParticipantXmlProfiles", participant_xml_profiles_);
+
     rootContext()->setContextProperty("controller", controller_);
 
     addImportPath(":/imports");
@@ -236,6 +248,12 @@ Engine::~Engine()
         {
             delete dynamic_statistics_data_;
         }
+
+        if (participant_xml_profiles_)
+        {
+            delete participant_xml_profiles_;
+        }
+
         // WARNING: destroying this object heads to an error in javascript because cannot access methods of null:
         // qrc:/qml/AboutDialog.qml:57: TypeError: Cannot call method '...' of null
         // The elements that fail are:
@@ -249,11 +267,12 @@ Engine::~Engine()
 }
 
 void Engine::init_monitor(
-        int domain)
+        int domain,
+        std::string easy_mode_ip /* = "" */)
 {
     std::lock_guard<std::recursive_mutex> lock(initializing_monitor_);
 
-    backend::EntityId domain_id = backend_connection_.init_monitor(domain);
+    backend::EntityId domain_id = backend_connection_.init_monitor(domain, easy_mode_ip);
 
     if (domain_id.is_valid())
     {
@@ -285,6 +304,27 @@ void Engine::init_monitor(
             "Error trying to initialize monitor in Discovery Server with locators: " +
             utils::to_string(discovery_server_locators),
             ErrorType::INIT_DS_MONITOR);
+    }
+}
+
+void Engine::init_monitor_with_profile(
+        const QString& profile_name)
+{
+    std::lock_guard<std::recursive_mutex> lock(initializing_monitor_);
+
+    backend::EntityId domain_id = backend_connection_.init_monitor_with_profile(
+        profile_name.toStdString());
+
+    if (domain_id.is_valid())
+    {
+        shared_init_monitor_(domain_id);
+    }
+    else
+    {
+        process_error(
+            "Error trying to initialize monitor with profile " +
+            profile_name.toStdString(),
+            ErrorType::INIT_MONITOR_WITH_PROFILE);
     }
 }
 
@@ -1168,7 +1208,7 @@ bool Engine::update_entity_status(
                 {
                     if (sample.status != backend::StatusLevel::OK_STATUS)
                     {
-                        std::string fastdds_version = "v3.1.0";
+                        std::string fastdds_version = "v" + controller_->fastdds_version().toStdString();
                         backend::StatusLevel entity_status = backend_connection_.get_status(id);
                         auto entity_item = entity_status_model_->getTopLevelItem(
                             id, entity_kind + ": " + backend_connection_.get_name(
@@ -1659,6 +1699,15 @@ void Engine::change_metatraffic_visible()
     refresh_engine();
 }
 
+void Engine::change_ros2_demangling()
+{
+    ros2_demangling_active_ = !ros2_demangling_active_;
+    fill_physical_data_();
+    fill_logical_data_();
+    fill_dds_data_();
+    refresh_engine();
+}
+
 bool Engine::inactive_visible() const
 {
     return inactive_visible_;
@@ -1667,6 +1716,11 @@ bool Engine::inactive_visible() const
 bool Engine::metatraffic_visible() const
 {
     return metatraffic_visible_;
+}
+
+bool Engine::ros2_demangling_active() const
+{
+    return ros2_demangling_active_;
 }
 
 std::string Engine::get_data_kind_units(
@@ -1785,6 +1839,18 @@ std::string Engine::get_type_idl(
     return backend_connection_.get_type_idl(entity_id);
 }
 
+std::string Engine::get_ros2_type_idl(
+        const backend::EntityId& entity_id)
+{
+    return backend_connection_.get_ros2_type_idl(entity_id);
+}
+
+std::string Engine::get_ros2_type_name(
+        const backend::EntityId& entity_id)
+{
+    return backend_connection_.get_ros2_type_name(entity_id);
+}
+
 models::EntityId Engine::get_endpoint_topic_id(
         const models::EntityId& endpoint_id)
 {
@@ -1810,6 +1876,60 @@ backend::Graph Engine::get_domain_view_graph (
         const backend::EntityId& domain_id)
 {
     return backend_connection_.get_domain_view_graph(domain_id);
+}
+
+bool Engine::load_xml_profiles_file(
+        const QString& file_path)
+{
+    // Resolve the file path
+    QUrl file_url(file_path);
+    QString local_file_path = file_url.toLocalFile();
+
+    QFile file(local_file_path);
+    if (!file.exists())
+    {
+        process_error("XML profiles file " + utils::to_string(
+                    local_file_path) + " does not exist.", ErrorType::INIT_MONITOR_WITH_PROFILE);
+        return false;
+    }
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        process_error("XML profiles file " + utils::to_string(
+                    local_file_path) + " not found or cannot be opened.", ErrorType::INIT_MONITOR_WITH_PROFILE);
+        return false;
+    }
+
+    if (!file.permissions().testFlag(QFileDevice::ReadUser))
+    {
+        process_error("XML profiles file " + utils::to_string(
+                    local_file_path) + " cannot be read due to insufficient permissions.",
+                ErrorType::INIT_MONITOR_WITH_PROFILE);
+        return false;
+    }
+
+    std::vector<std::string> profiles;
+    profiles = backend_connection_.load_xml_profiles_file(utils::to_string(local_file_path));
+
+    if (profiles.empty())
+    {
+        process_error("No participant profiles found or error loading XML profiles file " +
+                utils::to_string(local_file_path) + ".", ErrorType::INIT_MONITOR_WITH_PROFILE);
+        return false;
+    }
+
+    // Append new profiles to the existing list, avoiding duplicates
+    QStringList currentList = participant_xml_profiles_->stringList();
+    for (const auto& profile : profiles)
+    {
+        if (!currentList.contains(QString::fromStdString(profile)))
+        {
+            currentList.append(QString::fromStdString(profile));
+        }
+    }
+    participant_xml_profiles_->setStringList(currentList);
+
+    return true;
 }
 
 bool EntityClicked::is_set() const

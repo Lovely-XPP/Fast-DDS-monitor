@@ -78,10 +78,12 @@ public:
      * Calls the Backend \c init_monitor method in order to initialize a new monitor in a new Domain
      *
      * @param domain new domain number
+     * @param easy_mode_ip IP address of the remote discovery server used in ROS2 Easy Mode.
      * @return EntityId of the new Domain Entity created
      */
     EntityId init_monitor(
-            int domain);
+            int domain,
+            std::string easy_mode_ip = "");
 
     /**
      * @brief Init a monitor by setting a string with one or many locators of Discovery Servers
@@ -96,6 +98,14 @@ public:
      */
     EntityId init_monitor(
             std::string discovery_server_locators);
+
+    //! Initialize a monitor using a profile name
+    EntityId init_monitor_with_profile(
+            const std::string& profile_name);
+
+    //! Load an XML file containing DDS profiles
+    std::vector<std::string> load_xml_profiles_file(
+            const std::string& xml_file);
 
     /////
     // Information query functions
@@ -335,6 +345,14 @@ public:
 
     //! Retrieve the IDL representation of a topic data type in string format
     std::string get_type_idl (
+            const EntityId& entity_id);
+
+    //! Retrieve the original IDL representation associated to a specific data type in string format, if demangled from ROS 2 (regular IDL otherwise)
+    std::string get_ros2_type_idl (
+            const EntityId& entity_id);
+
+    //! Retrieve the demangled IDL name associated to a specific data type in string format, if demangled from ROS 2 (regular name otherwise)
+    std::string get_ros2_type_name (
             const EntityId& entity_id);
 
 protected:

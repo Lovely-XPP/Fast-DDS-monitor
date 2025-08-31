@@ -23,6 +23,7 @@
 #define _EPROSIMA_FASTDDS_MONITOR_CONTROLLER_H
 
 #include <QDebug>
+#include <QMap>
 #include <QObject>
 #include <QtCharts/QVXYModelMapper>
 
@@ -32,9 +33,10 @@ class Engine;
 
 enum class ErrorType : int
 {
-    GENERIC = 0,            //! Generic error, just show the message
-    INIT_MONITOR = 1,       //! Error in @c init_monitor. Reopen the @c init dds monitor dialog
-    INIT_DS_MONITOR = 2     //! Error in @c init_monitor. Reopen the @c init discovery server monitor dialog
+    GENERIC = 0,                    //! Generic error, just show the message
+    INIT_MONITOR = 1,               //! Error in @c init_monitor. Reopen the @c init dds monitor dialog
+    INIT_DS_MONITOR = 2,            //! Error in @c init_monitor. Reopen the @c init discovery server monitor dialog
+    INIT_MONITOR_WITH_PROFILE = 3   //! Error in @c init_monitor_with_profile. Reopen the @c init dds monitor dialog with profile
 };
 
 /**
@@ -80,11 +82,20 @@ public slots:
 
     //! Slot called by init a monitor with a domain number
     void init_monitor(
-            int domain);
+            int domain,
+            QVariantMap advanced_options);
 
     //! Slot called when initializing a monitor for a Discovery Server network
     void init_monitor(
             QString discovery_server_locators);
+
+    //! Slot called when initializing a monitor with a profile name
+    void init_monitor_with_profile(
+            QString profile_name);
+
+    //! Load an XML file containing DDS profiles
+    void load_xml_profiles_file(
+            QString file_path);
 
     //! Slot called when a Host entity is pressed
     void host_click(
@@ -192,6 +203,12 @@ public slots:
     //! Change \c metatraffic_visible status
     void change_metatraffic_visible();
 
+    //! Whether the ROS 2 demangling is active
+    bool ros2_demangling_active();
+
+    //! Change \c ros2_demangling_active status
+    void change_ros2_demangling();
+
     //! Call engine to refresh summary
     void refresh_summary();
 
@@ -280,6 +297,12 @@ public slots:
             QString domain_id);
 
     QString get_type_idl (
+            QString entity_id);
+
+    QString get_ros2_type_idl (
+            QString entity_id);
+
+    QString get_ros2_type_name (
             QString entity_id);
 
     QString get_endpoint_topic_id(

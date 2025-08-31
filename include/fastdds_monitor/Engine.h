@@ -30,6 +30,7 @@
 #include <QtCharts/QVXYModelMapper>
 #include <QThread>
 #include <QWaitCondition>
+#include <QStringListModel>
 
 #include <fastdds_monitor/backend/Callback.h>
 #include <fastdds_monitor/backend/StatusCallback.h>
@@ -141,9 +142,11 @@ public:
     /**
      * @brief Initialize a monitor in a domain by number
      * @param domain number of the domain
+     * @param easy_mode_ip IP address of the remote discovery server used in ROS2 Easy Mode.
      */
     void init_monitor(
-            int domain);
+            int domain,
+            std::string easy_mode_ip = "");
 
     /**
      * @brief Initialize a monitor in a domain by discovery server locators
@@ -475,11 +478,17 @@ public:
     //! Change metatraffic visible parameter
     void change_metatraffic_visible();
 
+    //! Change ros2 demangling active status
+    void change_ros2_demangling();
+
     //! Get if inactive entities must be visible
     bool inactive_visible() const;
 
     //! Get if metatraffic must be visible
     bool metatraffic_visible() const;
+
+    //! Get if ROS 2 demangling is active
+    bool ros2_demangling_active() const;
 
     //! Give a string with the name of the unit magnitud in which each DataKind is measured
     std::string get_data_kind_units(
@@ -538,6 +547,14 @@ public:
     std::string get_type_idl(
             const backend::EntityId& entity_id);
 
+    //! Retrieve the original IDL representation associated to a specific data type, if demangled from ROS 2 (regular IDL otherwise)
+    std::string get_ros2_type_idl(
+            const backend::EntityId& entity_id);
+
+    //! Retrieve the demangled IDL name associated to a specific data type, if demangled from ROS 2 (regular name otherwise)
+    std::string get_ros2_type_name(
+            const backend::EntityId& entity_id);
+
     //! Retrieve the topic id associated to a specific endpoint
     models::EntityId get_endpoint_topic_id(
             const models::EntityId& endpoint_id);
@@ -559,6 +576,14 @@ public:
     //! Request to backend the latest domain view JSON to build the graph
     backend::Graph get_domain_view_graph (
             const backend::EntityId& domain_id);
+
+    //! Load an XML file containing DDS profiles
+    bool load_xml_profiles_file(
+            const QString& file_path);
+
+    //! Initialize a monitor using a profile name
+    void init_monitor_with_profile(
+            const QString& profile_name);
 
 signals:
 
@@ -832,6 +857,9 @@ protected:
     //! Whether metatraffic must be visible in the model
     bool metatraffic_visible_;
 
+    //! Whether the ROS 2 demangling is active
+    bool ros2_demangling_active_;
+
     /**
      * Protect the dds model while a new monitor is being created
      *
@@ -844,6 +872,8 @@ protected:
 
     //! All status log
     backend::Info status_status_log_;
+
+    QStringListModel* participant_xml_profiles_;
 };
 
 #endif // _EPROSIMA_FASTDDS_MONITOR_ENGINE_H

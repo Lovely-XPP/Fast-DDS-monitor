@@ -20,11 +20,13 @@ MenuBar {
     signal explorerPhysicalChanged(bool status)
     signal explorerLogicalChanged(bool status)
     signal explorerEntityInfoChanged(bool status)
+    signal ros2DemanglingChange(bool newValue)
 
     signal leftSidebarHidden
 
     property bool inactive_visible: controller.inactive_visible()
     property bool metatraffic_visible: controller.metatraffic_visible()
+    property bool ros2DemanglingActive: controller.ros2_demangling_active()
 
     AdaptiveMenu {
         title: qsTr("&File")
@@ -35,6 +37,10 @@ MenuBar {
         Action {
             text: qsTr("Initialize Discovery Server Monitor")
             onTriggered: dialogDSInitMonitor.open()
+        }
+        Action {
+            text: qsTr("Initialize DDS Monitor with Profile")
+            onTriggered: initMonitorWithProfileDialog.open()
         }
         MenuSeparator { }
         Action {
@@ -122,6 +128,14 @@ MenuBar {
             onTriggered: {
                 metatraffic_visible = !metatraffic_visible
                 controller.change_metatraffic_visible()
+            }
+        }
+        Action {
+            text: ros2DemanglingActive ? "Revert ROS 2 Demangling" : "Perform ROS 2 Demangling"
+            onTriggered: {
+                ros2DemanglingActive = !ros2DemanglingActive
+                controller.change_ros2_demangling()
+                ros2DemanglingChange(ros2DemanglingActive);
             }
         }
         MenuSeparator { }

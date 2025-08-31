@@ -168,14 +168,21 @@ As with the hide/show inactive entities feature, when metatraffic entities are h
 in the whole application framework.
 This button displays/hides the metatraffic entities detected by the monitor.
 
+Revert/Perform ROS 2 Demangling
+-------------------------------
+By default, ROS 2 types are demangled to recover the original type name and IDL representation in IDL view, and improve
+compatibility with FastDDS Gen IDL use. Demangled IDLs in IDL view show a sign on the corner informing of this
+operation. When this feature is disabled, the ROS 2 types are shown as they are received by the monitor. This button
+reverts/performs the demangling operation.
+
 Dashboard Layout
 ----------------
 Changes the size of the chart boxes displayed in the :ref:`chart_panel_index` of the application.
 Three mutually exclusive layout options are defined and explained below.
 
- * |dashboard_layout_1| **Large**: A single full-screen chart is displayed.
- * |dashboard_layout_2| **Medium**: Adjusts the chart size to show two chart boxes per row.
- * |dashboard_layout_3| **Small**: Adjusts the chart size to show three chart boxes per row.
+* |dashboard_layout_1| **Large**: A single full-screen chart is displayed.
+* |dashboard_layout_2| **Medium**: Adjusts the chart size to show two chart boxes per row.
+* |dashboard_layout_3| **Small**: Adjusts the chart size to show three chart boxes per row.
 
 Hide/Show Shortcuts Toolbar
 ---------------------------
@@ -218,9 +225,6 @@ Link to the `Issues`_ section of the `GitHub Fast DDS Monitor repository`_.
 Report Issue
 ------------
 Link to create a new Issue in the `Issues`_ section of the `GitHub Fast DDS Monitor repository`_.
-
-.. todo::
-    Explain the form to add an issue.
 
 About
 -----

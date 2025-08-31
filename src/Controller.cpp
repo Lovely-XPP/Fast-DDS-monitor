@@ -28,15 +28,35 @@
 #include <fastdds_monitor/utils.h>
 
 void Controller::init_monitor(
-        int domain)
+        int domain,
+        QVariantMap advanced_options)
 {
-    engine_->init_monitor(domain);
+    /* Create engine input parameters from advance options */
+    // ROS2 Easy Mode IP
+    std::string easy_mode_ip = "";
+    if (advanced_options.contains("easy_mode_ip"))
+    {
+        easy_mode_ip = advanced_options["easy_mode_ip"].toString().toStdString();
+    }
+    engine_->init_monitor(domain, easy_mode_ip);
 }
 
 void Controller::init_monitor(
         QString discovery_server_locators)
 {
     engine_->init_monitor(discovery_server_locators);
+}
+
+void Controller::init_monitor_with_profile(
+        QString profile_name)
+{
+    engine_->init_monitor_with_profile(profile_name);
+}
+
+void Controller::load_xml_profiles_file(
+        QString file_path)
+{
+    engine_->load_xml_profiles_file(file_path);
 }
 
 void Controller::host_click(
@@ -224,6 +244,16 @@ void Controller::change_metatraffic_visible()
     engine_->change_metatraffic_visible();
 }
 
+bool Controller::ros2_demangling_active()
+{
+    return engine_->ros2_demangling_active();
+}
+
+void Controller::change_ros2_demangling()
+{
+    engine_->change_ros2_demangling();
+}
+
 void Controller::refresh_summary()
 {
     engine_->refresh_summary();
@@ -327,6 +357,18 @@ QString Controller::get_type_idl(
         QString entity_id)
 {
     return utils::to_QString(engine_->get_type_idl(backend::models_id_to_backend_id(entity_id)));
+}
+
+QString Controller::get_ros2_type_idl(
+        QString entity_id)
+{
+    return utils::to_QString(engine_->get_ros2_type_idl(backend::models_id_to_backend_id(entity_id)));
+}
+
+QString Controller::get_ros2_type_name(
+        QString entity_id)
+{
+    return utils::to_QString(engine_->get_ros2_type_name(backend::models_id_to_backend_id(entity_id)));
 }
 
 QString Controller::get_endpoint_topic_id(
